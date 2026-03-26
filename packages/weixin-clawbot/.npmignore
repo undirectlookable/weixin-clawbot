@@ -1,0 +1,10 @@
+# Source and workspace files should never be published.
+src/
+test/
+coverage/
+*.tsbuildinfo
+tsconfig.json
+
+# Build outputs are whitelisted via package.json#files.
+# Keep source maps out of the tarball to avoid shipping unnecessary files.
+dist/**/*.map

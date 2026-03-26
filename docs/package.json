@@ -1,0 +1,12 @@
+{
+  "name": "weixin-clawbot-docs",
+  "private": true,
+  "scripts": {
+    "start": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.17"
+  }
+}

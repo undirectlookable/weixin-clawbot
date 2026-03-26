@@ -1,0 +1,2 @@
+This file is bundled with the example project.
+You can send it back to the conversation with the /file command.

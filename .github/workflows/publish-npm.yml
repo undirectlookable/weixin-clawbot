@@ -1,0 +1,64 @@
+name: Publish NPM
+
+on:
+  pull_request:
+    types:
+      - closed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to publish from. Use the merged version PR commit SHA when retrying a failed release.
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.event.pull_request.merge_commit_sha || inputs.ref || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.title == 'Version Packages' && github.event.pull_request.user.login == 'github-actions[bot]') }}
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_PROVENANCE: true
+    steps:
+      - name: Resolve publish ref
+        id: publish_ref
+        env:
+          MANUAL_REF: ${{ inputs.ref }}
+          MERGED_REF: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=$MANUAL_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$MERGED_REF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout publish ref
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.publish_ref.outputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish public packages
+        run: pnpm release

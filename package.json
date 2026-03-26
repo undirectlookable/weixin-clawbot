@@ -1,0 +1,39 @@
+{
+  "name": "weixin-clawbot-monorepo",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/undirectlookable/weixin-clawbot.git"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "check:commit": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "changeset": "changeset",
+    "changeset:status": "node scripts/ci/changeset-status.mjs",
+    "version-packages": "changeset version",
+    "version-packages:ci": "changeset version && pnpm install --lockfile-only",
+    "release": "changeset publish",
+    "release:dry-run": "node scripts/ci/release-dry-run.mjs",
+    "release:dry-run:json": "node scripts/ci/release-dry-run.mjs --json",
+    "run:cli": "pnpm --filter weixin-clawbot run:cli",
+    "test": "pnpm --filter weixin-clawbot test",
+    "test:coverage": "pnpm --filter weixin-clawbot test:coverage",
+    "typecheck": "tsc -b",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "docs:dev": "pnpm --dir ./docs start",
+    "docs:build": "pnpm --dir ./docs build",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2",
+    "@changesets/cli": "2",
+    "@commitlint/cli": "19",
+    "@commitlint/config-conventional": "19",
+    "@types/node": "24",
+    "husky": "9",
+    "typescript": "6"
+  }
+}

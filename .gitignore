@@ -1,0 +1,11 @@
+node_modules
+.pnpm-store
+coverage
+dist
+.weixin-clawbot
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+npm-debug.log*
+pnpm-debug.log*

@@ -1,0 +1,88 @@
+name: PR Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce main as the base branch
+        if: ${{ github.event.pull_request.base.ref != 'main' }}
+        run: |
+          echo "Pull requests must target the main branch."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch base branch
+        run: git fetch origin "${{ github.event.pull_request.base.ref }}" --depth=1
+
+      - name: Detect version PR
+        id: pr_meta
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ "$PR_TITLE" = "Version Packages" ] && [ "$PR_AUTHOR" = "github-actions[bot]" ]; then
+            echo "is_version_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_version_pr=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect public package changes
+        id: scope
+        run: node scripts/ci/changeset-guard.mjs "origin/${{ github.event.pull_request.base.ref }}"
+
+      - name: Require changeset markdown
+        if: ${{ steps.pr_meta.outputs.is_version_pr != 'true' && steps.scope.outputs.public_package_changed == 'true' && steps.scope.outputs.has_changeset_file != 'true' }}
+        run: |
+          echo "This pull request changes a public package but does not include a .changeset/*.md file."
+          echo "Run 'pnpm changeset' and commit the generated file."
+          exit 1
+
+      - name: Validate changeset status
+        if: ${{ steps.pr_meta.outputs.is_version_pr != 'true' && steps.scope.outputs.public_package_changed == 'true' }}
+        run: pnpm changeset:status
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
